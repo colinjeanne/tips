@@ -1,0 +1,187 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Tip Calculator</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style lang="text/css">
+            html {
+                height: 100%;
+            }
+
+            body {
+                box-sizing: border-box;
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                font-family: sans-serif;
+                margin: 0;
+                padding: 1em;
+            }
+
+            div {
+                margin: 0;
+                padding: 0;
+            }
+
+            #amount, #verify {
+                width: 5em;
+            }
+
+            #amount, #calculate, #verify {
+                font-size: 150%;
+            }
+
+            #outputs {
+                margin: 1em 0;
+                padding: 0;
+            }
+
+            .container {
+                display: flex;
+                margin: 0.5em 0;
+                padding: 0.5em;
+            }
+
+            .container:nth-child(odd) {
+                background: lightgray;
+            }
+
+            .percentage {
+                margin-right: 1em;
+            }
+        </style>
+    </head>
+    <body>
+        <div>
+            <div>
+                <label for="amount">Amount:</label>
+                <input
+                    type="number"
+                    id="amount"
+                    placeholder="1.00"
+                    step="0.01"
+                    min="1">
+                <button type="button" id="calculate">Go</button>
+            </div>
+            <div id="outputs">
+            </div>
+        </div>
+        <div>
+            <label for="verify">Verify:</label>
+            <input type="number" id="verify" placeholder="1.00" step="0.01">
+            <output id="verifyResult"></output>
+        </div>
+        <script>
+            function digitSum(n) {
+                let sum = 0;
+                const upper = Math.floor(Math.log10(n));
+                for (let i = 0; i <= upper; ++i) {
+                    sum += ((n % (10 ** (i + 1))) - (n % (10 ** i))) / (10 ** i);
+                }
+
+                return sum % 10;
+            }
+
+            const tips = [
+                1.00,
+                1.05,
+                1.10,
+                1.15,
+                1.20,
+            ];
+
+            const amountInput = document.getElementById('amount');
+            const goButton = document.getElementById('calculate');
+            const outputs = document.getElementById('outputs');
+            const verifyInput = document.getElementById('verify');
+            const verifyOutput = document.getElementById('verifyResult');
+
+            function getTip(amount, desiredTip) {
+                const dimes = Math.trunc(amount * desiredTip * 10);
+                const total = dimes / 10 + (digitSum(dimes) / 100);
+
+                const tip = total - amount;
+                const percentage = ((total / amount) - 1) * 100;
+
+                return {
+                    total,
+                    tip,
+                    percentage,
+                };
+            }
+
+            function addOutput(tipData) {
+                const container = document.createElement('div');
+                container.className = 'container';
+
+                const percentageBlock = document.createElement('div');
+                percentageBlock.className = 'percentage';
+                percentageBlock.textContent = `${Math.round(tipData.percentage)}%`;
+                container.appendChild(percentageBlock);
+
+                const receiptBlock = document.createElement('div');
+                receiptBlock.className = 'receipt';
+
+                const tipLine = document.createElement('div');
+                tipLine.textContent = `Tip: ${tipData.tip.toFixed(2)}`;
+                receiptBlock.appendChild(tipLine);
+
+                const totalLine = document.createElement('div');
+                totalLine.textContent = `Total: ${tipData.total.toFixed(2)}`;
+                receiptBlock.appendChild(totalLine);
+
+                container.appendChild(receiptBlock);
+                outputs.appendChild(container);
+            }
+
+            function recalculateTip() {
+                const amount = amountInput.valueAsNumber;
+                amount.value = amount.toFixed(2);
+
+                outputs.textContent = '';
+
+                const positiveTips = tips.
+                    map(desiredTip => getTip(amount, desiredTip)).
+                    filter(data => data.tip >= 0);
+
+                const deduped = [];
+                for (const tip of positiveTips) {
+                    if (!deduped.find(existingTip => existingTip.tip === tip.tip)) {
+                        deduped.push(tip);
+                    }
+                }
+
+                deduped.forEach(addOutput);
+            }
+
+            function verifyTip() {
+                const total = verifyInput.valueAsNumber;
+                verifyInput.value = total.toFixed(2);
+                const cents = total * 100;
+                const check = cents % 10;
+                const base = digitSum(cents - check);
+
+                if (check === base) {
+                    verifyOutput.value = `Success`;
+                } else {
+                    verifyOutput.value = `Failure`;
+                }
+            }
+
+            amountInput.addEventListener('change', recalculateTip);
+            amountInput.addEventListener(
+                'keyup',
+                e => {
+                    if (e.keyCode === 13) {
+                        e.currentTarget.blur();
+                    }
+                });
+            goButton.addEventListener('click', recalculateTip);
+            verifyInput.addEventListener('change', verifyTip);
+
+            recalculateTip();
+        </script>
+    </body>
+</html>
